@@ -1,3 +1,7 @@
+# Purpose: Sentiment Analysis of iphone Reviews
+# Python Package: pandas, matplotlib, seaborn, nltk, transformers, tqdm
+# Sentiment Analysis: Vader, Roberta
+
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import pandas as pd
@@ -7,12 +11,13 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from scipy.special import softmax
 from tqdm import tqdm
 
+# set the pandas options
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
 # nltk.download('all')
 
-
+# test data set
 def test_data(data):
     # print(data.head())
     # print(data.shape)
@@ -20,6 +25,7 @@ def test_data(data):
     # print(data['review_rating'][0])
 
 
+# create plot for review rating
 def test_plot(val):
     ax = val['review_rating'].value_counts().sort_index().plot(kind='bar', title='Review Rating', figsize=(10, 5))
     ax.set_xlabel('Rating')
@@ -27,6 +33,7 @@ def test_plot(val):
     plt.show()
 
 
+# create plot for review rating with sentiment analysis using vader
 def test_plot_vader(val):
     ax = sns.barplot(data=val, x='review_rating', y='compound')
     ax.set_title('Review Rating vs. Sentiment')
@@ -34,6 +41,7 @@ def test_plot_vader(val):
     plt.show()
 
 
+# create plots for review rating with positive, negative and neutral sentiment using vader
 def test_plot_vader_sentiment(val):
     fig, ax = plt.subplots(1, 3, figsize=(15, 5))
     sns.barplot(data=val, x='review_rating', y='pos', ax=ax[0])
@@ -47,12 +55,15 @@ def test_plot_vader_sentiment(val):
     plt.show()
 
 
+# create plot for review rating and compare sentiment analysis using vader and roberta
 def test_plot_compare(val):
     sns.pairplot(data=val, vars=['roberta_neg', 'roberta_neu', 'roberta_pos', 'vader_neg', 'vader_neu', 'vader_pos'],
                  hue='review_rating', palette='tab10')
     plt.savefig('images/review_rating_compare.png')
     plt.show()
 
+
+# create plot for review rating and compare sentiment analysis using vader and roberta
 def test_plot_roberta_vs_vader(val):
     fig, ax = plt.subplots(1, 3, figsize=(15, 5))
     sns.scatterplot(data=val, x='vader_pos', y='roberta_pos', hue='review_rating', ax=ax[0])
@@ -66,6 +77,7 @@ def test_plot_roberta_vs_vader(val):
     plt.show()
 
 
+# test the word entities using nltk
 def test_word_entities(data, i):
     # print(data['review_title'][0])
     ex = data['review_text'][i]
@@ -75,11 +87,13 @@ def test_word_entities(data, i):
     print(entities)
 
 
+# test the sentiment analysis using sentiment intensity analyzer
 def test_sentiment(data, i, sia):
     print(data['review_text'][i])
     print(sia.polarity_scores(data['review_text'][i]))
 
 
+# test the sentiment analysis using roberta model from huggingface
 def test_roberta(data):
     tokenizer, model = roberta_model()
     encode_text = tokenizer(data['review_text'][57], return_tensors='pt')
@@ -91,6 +105,7 @@ def test_roberta(data):
     print(score_dict)
 
 
+# test the update data set about sentiment analysis using roberta model from huggingface and vader
 def test_update_data_set(data):
     roberta_text_pos = \
         data.query('review_rating == 1').sort_values('roberta_pos', ascending=False)['review_text'].values[0]
@@ -104,6 +119,7 @@ def test_update_data_set(data):
     print('Vader 5 star Neg: ', vader_text_neg)
 
 
+# Clean the data set and remove the unnecessary words and characters
 def replace_review_rating(data):
     for i in range(0, len(data)):
         data['review_rating'][i] = data['review_rating'][i].replace(' out of 5 stars', '')
@@ -113,6 +129,7 @@ def replace_review_rating(data):
     return data
 
 
+# find the polarity score using vader
 def vader_polarity_score(data, sia):
     res = {}
     for i, row in tqdm(data.iterrows(), total=len(data), desc='Vader'):
@@ -127,6 +144,7 @@ def vader_polarity_score(data, sia):
     return res
 
 
+# merge the polarity score with the data set
 def merge_data(data, res):
     vader = pd.DataFrame(res).T
     vader = vader.reset_index().rename(columns={'index': 'index'})
@@ -135,6 +153,7 @@ def merge_data(data, res):
     return vader
 
 
+# create roberta model for sentiment analysis using huggingface
 def roberta_model():
     task = 'sentiment'
     pre_train_model = f'cardiffnlp/twitter-roberta-base-{task}'
@@ -143,6 +162,7 @@ def roberta_model():
     return tokenizer, model
 
 
+# find the polarity score using roberta model from huggingface
 def roberta_polarity_score(data):
     tokenizer, model = roberta_model()
     res = {}
@@ -162,6 +182,7 @@ def roberta_polarity_score(data):
     return res
 
 
+# rename the columns of the data set
 def rename_column(data):
     data = data.rename(
         columns={'neg': 'vader_neg', 'neu': 'vader_neu', 'pos': 'vader_pos', 'compound': 'vader_compound'})
@@ -169,26 +190,26 @@ def rename_column(data):
 
 
 def main():
-    plt.style.use('ggplot')
-    df = pd.read_csv('data/apple_iphone_11_reviews.csv')
-    df = df.head(1000)
-    df = replace_review_rating(df)
-    sia = SentimentIntensityAnalyzer()
+    plt.style.use('ggplot')  # set the style of the plot
+    df = pd.read_csv('data/apple_iphone_11_reviews.csv')  # read the data set
+    df = df.head(1000)  # take the first 1000 rows
+    df = replace_review_rating(df)  # clean the data set
+    sia = SentimentIntensityAnalyzer()  # create the sentiment intensity analyzer
     # test_data(df)
     # test_plot(df)
     # test_word_entities(df,57)
     # test_sentiment(df,57,sia)
-    res = vader_polarity_score(df, sia)
+    res = vader_polarity_score(df, sia)  # find the polarity score using vader
 
-    vader = merge_data(df, res)
+    vader = merge_data(df, res)  # merge the polarity score with the data set
     # test_plot_vader(vader)
     # test_plot_vader_sentiment(vader)
 
     # test_roberta(vader)
-    roberta_res = roberta_polarity_score(vader)
-    roberta = merge_data(vader, roberta_res)
+    roberta_res = roberta_polarity_score(vader)  # find the polarity score using roberta model from huggingface
+    roberta = merge_data(vader, roberta_res)  # merge the polarity score with the data set
     # print(roberta.iloc[0])
-    new_df = rename_column(roberta)
+    new_df = rename_column(roberta)  # rename the columns of the data set
     # print(new_df.iloc[0])
 
     # test_plot_compare(new_df)
@@ -197,9 +218,10 @@ def main():
     # test_plot_roberta_vs_vader(new_df)
 
     result = new_df[['index', 'review_title', 'review_text', 'review_rating', 'vader_neg', 'vader_neu', 'vader_pos',
-                     'vader_compound', 'roberta_neg', 'roberta_neu', 'roberta_pos']]
-    result.to_csv('data/apple_iphone_11_reviews_vader_roberta.csv', index=False)
+                     'vader_compound', 'roberta_neg', 'roberta_neu', 'roberta_pos']]  # select the columns to save
+    result.to_csv('data/apple_iphone_11_reviews_vader_roberta.csv', index=False)  # save the data set to csv file
 
 
+# call the main function
 if __name__ == "__main__":
     main()
